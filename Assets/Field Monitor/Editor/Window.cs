@@ -4,7 +4,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
-using System.Text.RegularExpressions;
 
 namespace FieldMonitor
 {
@@ -12,8 +11,7 @@ namespace FieldMonitor
 	{
 		const BindingFlags staticFlags = BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic;
 		static readonly string[] assemblyNames = { "UnityScript", "Assembly-CSharp", "Assembly-CSharp-firstpass" };
-		static readonly Regex propertyNameRegex = new Regex("<(.+)>k__BackingField");
-		static Dictionary<Type, FieldInfo[]> monitored;
+		static Dictionary<Type, MemberInfo[]> monitored;
 
 		[MenuItem("Window/Field Monitor")]
 		static void Init ()
@@ -30,8 +28,18 @@ namespace FieldMonitor
 			foreach (var group in monitored) {
 				GUILayout.Label(group.Key.Name, EditorStyles.boldLabel);
 
-				foreach (var field in group.Value) {
-					var label = string.Format("{0}: {1}", GetFieldName(field), field.GetValue(null));
+				foreach (var member in group.Value) {
+					var label = member.Name + ": ";
+
+					if (member is FieldInfo) {
+						var field = member as FieldInfo;
+						Debug.Log(field.GetValue(null));
+						label += field.GetValue(null);
+					} else if (member is PropertyInfo) {
+						var property = member as PropertyInfo;
+						label += property.GetGetMethod().Invoke(null, null).ToString();
+					}
+
 					GUILayout.Label(label);
 				}
 			}
@@ -39,24 +47,24 @@ namespace FieldMonitor
 
 		void OnFocus ()
 		{
-			monitored = GetMonitoredFields();
+			monitored = GetMonitoredMembers();
 		}
 
 		/// <summary>
 		/// Gets all monitored fields, grouped by their declaring type.
 		/// </summary>
 		/// <returns>Dictionary of types and their monitored fields.</returns>
-		static Dictionary<Type, FieldInfo[]> GetMonitoredFields ()
+		static Dictionary<Type, MemberInfo[]> GetMonitoredMembers ()
 		{
 			var types = GetTypes(assemblyNames);
-			var fieldsInMonitoredTypes = GetFieldsInMonitoredTypes(types);
-			var otherMonitoredFields = GetOtherMonitoredFields(types);
+			var membersInMonitoredTypes = GetMembersInMonitoredTypes(types);
+			var otherMonitoredMembers = GetOtherMonitoredMembers(types);
 
-			var monitoredFields = fieldsInMonitoredTypes.Union(otherMonitoredFields)
-				.GroupBy(field => field.DeclaringType)
+			var monitoredMembers = membersInMonitoredTypes.Union(otherMonitoredMembers)
+				.GroupBy(member => member.DeclaringType)
 				.ToDictionary(group => group.Key, group => group.ToArray());
 
-			return monitoredFields;
+			return monitoredMembers;
 		}
 
 		/// <summary>
@@ -71,59 +79,87 @@ namespace FieldMonitor
 				.Where(assembly => assemblyNames.Contains(assembly.GetName().Name))
 				.SelectMany(assembly => assembly.GetTypes())
 				.ToArray();
+
 			return types;
 		}
 
 		/// <summary>
-		/// Finds all fields in classes that are being monitored.
+		/// Finds all fields and properties in classes being monitored.
 		/// </summary>
 		/// <param name="types">All types.</param>
-		/// <returns>Array of fields in monitored class.</returns>
-		static FieldInfo[] GetFieldsInMonitoredTypes (Type[] types)
+		/// <returns>Array of members in monitored class.</returns>
+		static MemberInfo[] GetMembersInMonitoredTypes (Type[] types)
 		{
-			var fields = types
+			var monitoredTypes = types
 				.Where(type => HasAttribute(type))
-				.SelectMany(type => type.GetFields(staticFlags))
 				.ToArray();
-			return fields;
+
+			var fields = GetFields(monitoredTypes)
+				.Where(member => !member.Name.EndsWith("k__BackingField"));
+
+			var properties = GetProperties(monitoredTypes);
+			var members = fields.Union(properties).ToArray();
+			return members;
 		}
 
 		/// <summary>
-		/// Finds all fields explicitly marked to be monitored.
+		/// Finds all fields and properties explicitly marked to be monitored.
 		/// </summary>
 		/// <param name="types">All types.</param>
-		/// <returns>Array of monitored fields.</returns>
-		static FieldInfo[] GetOtherMonitoredFields (Type[] types)
+		/// <returns>Array of monitored members.</returns>
+		static MemberInfo[] GetOtherMonitoredMembers (Type[] types)
+		{
+			var fields = GetFields(types);
+			var properties = GetProperties(types);
+
+			var members = fields.Union(properties)
+				.Where(member => HasAttribute(member))
+				.ToArray();
+
+			return members;
+		}
+
+		/// <summary>
+		/// Gets all fields given some types.
+		/// </summary>
+		/// <param name="types">Types to look through.</param>
+		/// <returns>Fields as members.</returns>
+		static MemberInfo[] GetFields (Type[] types)
 		{
 			var fields = types
-				.SelectMany(type => type.GetFields(staticFlags)
-										.Where(field => HasAttribute(field)))
+				.SelectMany(type => type.GetFields(staticFlags))
+				.Cast<MemberInfo>()
 				.ToArray();
+
 			return fields;
 		}
 
 		/// <summary>
-		/// Checks if a type or field has a VariableWatcher attribute attached.
+		/// Gets all properties given some types.
+		/// </summary>
+		/// <param name="types">Types to look through.</param>
+		/// <returns>Properties as members.</returns>
+		static MemberInfo[] GetProperties (Type[] types)
+		{
+			var properties = types
+				.SelectMany(type => type.GetProperties(staticFlags))
+				.Cast<MemberInfo>()
+				.ToArray();
+
+			return properties;
+		}
+
+		/// <summary>
+		/// Checks if a class or field or property is being monitored.
 		/// </summary>
 		/// <returns>True if member is monitored.</returns>
 		static bool HasAttribute (MemberInfo member)
 		{
-			return member.GetCustomAttributes(false)
-						 .Any(attr => attr is Monitor);
-		}
+			var result = member
+				.GetCustomAttributes(false)
+				.Any(attr => attr is Monitor);
 
-		/// <summary>
-		/// Gets a human-readable name of the given field.
-		/// </summary>
-		/// <param name="field">Field.</param>
-		/// <returns>Name suitable for display.</returns>
-		static string GetFieldName (FieldInfo field)
-		{
-			if (propertyNameRegex.IsMatch(field.Name)) {
-				return propertyNameRegex.Split(field.Name)[1];
-			} else {
-				return field.Name;
-			}
+			return result;
 		}
 	}
 }

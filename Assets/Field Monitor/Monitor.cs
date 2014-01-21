@@ -3,6 +3,6 @@ using UnityEngine;
 
 namespace FieldMonitor
 {
-	[AttributeUsage(AttributeTargets.Class | AttributeTargets.Field)]
+	[AttributeUsage(AttributeTargets.Class | AttributeTargets.Field | AttributeTargets.Property)]
 	public class Monitor : Attribute {}
 }
