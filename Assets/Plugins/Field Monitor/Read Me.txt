@@ -45,6 +45,11 @@ see these values change accordingly.
 A demo script is provided that shows how to integrate Field Monitor with your
 scripts. Simply uncomment the first line in Plugins/Field Monitor/Demo.cs
 
+You can control how often the Field Monitor window updates from Preferences.
+By default, the values update when the window has focus or the mouse hovers
+over it. However, you may wish for it to constantly repaint or only repaint
+when the window it explicitly clicked on.
+
 
 Limitations
 -----------
@@ -58,6 +63,17 @@ in the following class cannot be monitored.
     {
         int x;
     }
+
+
+Frequently Asked Questions
+--------------------------
+
+Q: Does attaching the FieldMonitor.Monitor attribute to a field or property
+   have any negative impact on my game?
+
+A: No. The attribute is ignored by everything except for the Field Monitor
+   editor extension. It's completely hardless once your game is deployed and
+   when the Field Monitor window is closed.
 
 
 Version History
