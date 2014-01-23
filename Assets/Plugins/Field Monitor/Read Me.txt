@@ -1,10 +1,73 @@
-Field Monitor is an editor extension for [Unity](http://unity3d.com/) (the game
-engine) that allows you to view the values of fields and properties, both
-static and ones in object instances. This can be useful for viewing changes to
-values during play, e.g. the health of the player. This is similar to using the
-Inspector to view the value of public fields, except you can view fields and
-properties that are `static` or `private` or that don't belong to a
-`MonoBehaviour`.
+Field Monitor
+=============
 
-The package will be available for download from the Unity Asset Store soon. If
-you're short on cash feel welcome to grab the code directly from here.
+View values of fields and properties, both static and ones in object instances.
+This can be useful for viewing changes to values during play, e.g. the health
+of the player, that aren't exposed in the Inspector.
+
+
+Getting Started
+---------------
+
+Specify which fields and properties to monitor by attaching the
+FieldMonitor.Monitor attribute to them.
+
+    [FieldMonitor.Monitor]
+    static int playerHealth = 100;
+
+    [FieldMonitor.Monitor]
+    float timeAlive = 0.0;
+
+In JavaScript the syntax is slightly different.
+
+    @FieldMonitor.Monitor
+    static var playerHealth = 100;
+
+    @FieldMonitor.Monitor
+    var timeAlive = 0.0;
+
+If you wish to have all fields and properties in a class monitored, apply the
+FieldMonitor.Monitor attribute to the class itself.
+
+    [FieldMonitor.Monitor]
+    class YourComponent : MonoBehaviour
+    {
+        static int playerHealth = 100;
+        float timeAlive = 0.0;
+    }
+
+Now open the editor window by selecting the Window > Field Monitor menu item.
+The window is divided into two tabs: Instance Members and Static Members. The
+former shows values in instance objects (e.g. a component attached to a game
+object) while the latter show static values. When running your game you will
+see these values change accordingly.
+
+A demo script is provided that shows how to integrate Field Monitor with your
+scripts. Simply uncomment the first line in Plugins/Field Monitor/Demo.cs
+
+
+Limitations
+-----------
+
+Only fields and properties in instances that inherit from UnityEngine.Object
+can be monitored. This includes MonoBehaviour scripts. For example, the field x
+in the following class cannot be monitored.
+
+    [FieldMonitor.Monitor]
+    class SomeClass
+    {
+        int x;
+    }
+
+
+Version History
+---------------
+
+1.0 - January ??, 2013
+- Initial release.
+
+
+Contact
+-------
+
+Questions or suggestions? Please contact me at matthew@matthewminer.com.
