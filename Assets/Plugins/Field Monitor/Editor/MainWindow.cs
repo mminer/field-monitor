@@ -17,6 +17,9 @@ namespace FieldMonitor
 			new GUIContent("Static Members", "Static fields and properties being monitored."),
 		};
 
+		const string noInstanceMembersMessage = "No instance members found. Attach the FieldMonitor.Monitor attribute to instance fields or properties or a class. See the Read Me for more information.";
+		const string noStaticMembersMessage = "No static members found. Attach the FieldMonitor.Monitor attribute to static fields or properties or a class. See the Read Me for more information.";
+
 		static Dictionary<Object, MemberInfo[]> instanceMembers;
 		static Dictionary<System.Type, MemberInfo[]> staticMembers;
 
@@ -76,6 +79,11 @@ namespace FieldMonitor
 				instanceMembers = InstanceMemberFinder.GetMonitoredMembers();
 			}
 
+			if (instanceMembers.Count == 0) {
+				EditorGUILayout.HelpBox(noInstanceMembersMessage, MessageType.Warning);
+				return;
+			}
+
 			instanceMembersScrollPos = EditorGUILayout.BeginScrollView(instanceMembersScrollPos);
 
 			foreach (var kvp in	instanceMembers) {
@@ -100,6 +108,11 @@ namespace FieldMonitor
 		{
 			if (staticMembers == null) {
 				staticMembers = StaticMemberFinder.GetMonitoredMembers();
+			}
+
+			if (staticMembers.Count == 0) {
+				EditorGUILayout.HelpBox(noStaticMembersMessage, MessageType.Warning);
+				return;
 			}
 
 			staticMembersScrollPos = EditorGUILayout.BeginScrollView(staticMembersScrollPos);
