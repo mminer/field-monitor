@@ -55,9 +55,25 @@ namespace FieldMonitor
 		/// </summary>
 		void Update ()
 		{
-			// Force the window to redraw whenever it's active.
-			if (focusedWindow == this || mouseOverWindow == this) {
-				Repaint();
+			// Force the window to redraw depending on user's preferences.
+			switch (Preferences.whenToUpdate) {
+				case Preferences.UpdateValues.OnFocus:
+					if (focusedWindow == this) {
+						Repaint();
+					}
+
+					break;
+
+				case Preferences.UpdateValues.OnFocusAndHover:
+					if (focusedWindow == this || mouseOverWindow == this) {
+						Repaint();
+					}
+
+					break;
+
+				case Preferences.UpdateValues.Always:
+					Repaint();
+					break;
 			}
 		}
 
